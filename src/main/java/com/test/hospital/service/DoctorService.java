@@ -16,4 +16,17 @@ public class DoctorService {
     public List<Doctor> obtenerDoctores() {
         return doctorRepository.findAll();
     }
+
+    public Doctor crearDoctor(Doctor doctor) {
+        return doctorRepository.save(doctor);
+    }
+
+    // Eliminar un doctor por ID
+    public boolean eliminarDoctor(Long id) {
+        if (doctorRepository.existsById(id)) {
+            doctorRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
 }

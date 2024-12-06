@@ -24,6 +24,10 @@ public class ConsultorioService {
         return consultorioRepository.findById(id);
     }
 
+    public boolean existeConsultorio(int numero) {
+        return consultorioRepository.existsByNumero(numero);
+    }
+
     // Crear un nuevo consultorio
     public Consultorio crearConsultorio(Consultorio consultorio) {
         return consultorioRepository.save(consultorio);

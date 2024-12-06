@@ -1,6 +1,5 @@
 package com.test.hospital.model;
 
-
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -10,6 +9,9 @@ public class Cita {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
+    private String paciente;
 
     @ManyToOne
     @JoinColumn(name = "doctor_id", nullable = false)
@@ -22,16 +24,25 @@ public class Cita {
     @Column(nullable = false)
     private LocalDateTime horario;
 
-    @Column(nullable = false, length = 100)
-    private String paciente;
+    @Enumerated(EnumType.STRING)
+    private EstadoCita estado;
 
-    // Getters y Setters
+    // Getters y setters
+
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getPaciente() {
+        return paciente;
+    }
+
+    public void setPaciente(String paciente) {
+        this.paciente = paciente;
     }
 
     public Doctor getDoctor() {
@@ -58,11 +69,17 @@ public class Cita {
         this.horario = horario;
     }
 
-    public String getPaciente() {
-        return paciente;
+    public EstadoCita getEstado() {
+        return estado;
     }
 
-    public void setPaciente(String paciente) {
-        this.paciente = paciente;
+    public void setEstado(EstadoCita estado) {
+        this.estado = estado;
+    }
+
+    public enum EstadoCita {
+        PENDIENTE,
+        CANCELADA,
+        CONFIRMADA
     }
 }

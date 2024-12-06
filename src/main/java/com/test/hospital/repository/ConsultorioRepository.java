@@ -6,5 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ConsultorioRepository extends JpaRepository<Consultorio, Long> {
-    // Puedes agregar métodos personalizados aquí si los necesitas
+    // Método que verifica si ya existe un consultorio con el número dado
+    boolean existsByNumero(int numero);
 }

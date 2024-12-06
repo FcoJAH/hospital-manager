@@ -15,42 +15,87 @@ import java.util.List;
 public class CitaService {
 
     @Autowired
-    private CitaRepository citaRepository;
-
-    @Autowired
     private DoctorRepository doctorRepository;
 
     @Autowired
     private ConsultorioRepository consultorioRepository;
 
-    public Cita agendarCita(Cita cita) {
-        // Regla 1: No puede haber cita en el mismo consultorio a la misma hora
+    @Autowired
+    private CitaRepository citaRepository;
+
+    // Método para obtener todas las citas
+    public List<Cita> obtenerTodasLasCitas() {
+        return citaRepository.findAll();  // Utiliza el repositorio para obtener todas las citas
+    }
+
+    // Método para obtener una cita por su ID
+    public Cita obtenerCitaPorId(Long id) {
+        return citaRepository.findById(id).orElseThrow(() -> new RuntimeException("Cita no encontrada"));
+    }
+
+    // Método para crear una cita
+    public void crearCita(Cita cita) throws Exception {
+        // Validar la cita antes de guardarla
+        validarCita(cita);
+
+        // Asignar el estado de la cita como pendiente
+        cita.setEstado(Cita.EstadoCita.PENDIENTE);
+
+        // Guardar la cita en la base de datos
+        citaRepository.save(cita);
+    }
+
+    // Método para editar una cita
+    public void editarCita(Cita cita) throws Exception {
+        // Validar la cita antes de actualizarla
+        validarCita(cita);
+
+        // Guardar la cita actualizada
+        citaRepository.save(cita);
+    }
+
+    // Método para cancelar una cita
+    public void cancelarCita(Long id) {
+        Cita cita = obtenerCitaPorId(id);
+        cita.setEstado(Cita.EstadoCita.CANCELADA);
+        citaRepository.save(cita);  // Guardar la cita después de cambiar su estado a CANCELADA
+    }
+
+    // Método para validar la cita antes de guardarla
+    private void validarCita(Cita cita) throws Exception {
+        // 1. Verificar que no haya otra cita en el mismo consultorio a la misma hora
         if (citaRepository.existsByConsultorioAndHorario(cita.getConsultorio(), cita.getHorario())) {
-            throw new IllegalArgumentException("Ya hay una cita en este consultorio a esta hora.");
+            throw new Exception("El consultorio ya tiene una cita agendada en ese horario.");
         }
 
-        // Regla 2: No puede haber cita para el mismo doctor a la misma hora
+        // 2. Verificar que el doctor no tenga otra cita a la misma hora
         if (citaRepository.existsByDoctorAndHorario(cita.getDoctor(), cita.getHorario())) {
-            throw new IllegalArgumentException("Este doctor ya tiene una cita a esta hora.");
+            throw new Exception("El doctor ya tiene una cita agendada en ese horario.");
         }
 
-        // Regla 3: Un paciente no puede tener citas con menos de 2 horas de diferencia
+        // 3. Verificar que el paciente no tenga otra cita en el mismo día a menos de 2 horas de diferencia
         List<Cita> citasPaciente = citaRepository.findByPaciente(cita.getPaciente());
         for (Cita c : citasPaciente) {
-            if (Duration.between(c.getHorario(), cita.getHorario()).toMinutes() < 120) {
-                throw new IllegalArgumentException("El paciente no puede tener citas con menos de 2 horas de diferencia.");
+            if (c.getHorario().toLocalDate().equals(cita.getHorario().toLocalDate())) {
+                if (c.getHorario().isBefore(cita.getHorario().plusHours(2))) {
+                    throw new Exception("El paciente ya tiene una cita en ese horario o con menos de 2 horas de diferencia.");
+                }
             }
         }
 
-        // Regla 4: Un doctor no puede tener más de 8 citas al día
-        long citasDoctorEnElDia = citaRepository.countByDoctorAndHorarioBetween(cita.getDoctor(),
-                LocalDateTime.now().toLocalDate().atStartOfDay(),
-                LocalDateTime.now().toLocalDate().plusDays(1).atStartOfDay());
-        if (citasDoctorEnElDia >= 8) {
-            throw new IllegalArgumentException("El doctor ya tiene 8 citas hoy.");
+        // 4. Verificar que el doctor no tenga más de 8 citas en el día
+        LocalDateTime inicioDelDia = cita.getHorario().toLocalDate().atStartOfDay();
+        LocalDateTime finDelDia = cita.getHorario().toLocalDate().atTime(23, 59);
+        long citasDelDoctor = citaRepository.countByDoctorAndHorarioBetween(cita.getDoctor(), inicioDelDia, finDelDia);
+        if (citasDelDoctor >= 8) {
+            throw new Exception("El doctor no puede tener más de 8 citas en el día.");
         }
+    }
 
-        // Si pasa todas las validaciones, se guarda la cita
-        return citaRepository.save(cita);
+    // Método para contar cuántas citas tiene un doctor en un rango de tiempo
+    public long contarCitasDelDoctorEnRango(Cita cita) {
+        LocalDateTime inicioDelDia = cita.getHorario().toLocalDate().atStartOfDay();
+        LocalDateTime finDelDia = cita.getHorario().toLocalDate().atTime(23, 59);
+        return citaRepository.countByDoctorAndHorarioBetween(cita.getDoctor(), inicioDelDia, finDelDia);
     }
 }
